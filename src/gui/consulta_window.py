@@ -1,81 +1,77 @@
 import PySimpleGUI as sg
+import pandas as pd
 from ..utils.db_utils import ejecutar_consulta
 
 class ConsultaWindow:
-    def __init__(self, nombre_bd):
-        self.nombre_bd = nombre_bd
-        self.consultas_predefinidas = {
-            "Total de alumnos por periodo": """
-                SELECT p.nombre_periodo, 
-                       SUM(m.cantidad_h) as total_hombres, 
-                       SUM(m.cantidad_m) as total_mujeres,
-                       SUM(m.cantidad_h + m.cantidad_m) as total
-                FROM movimiento_alumnos m
-                JOIN periodos p ON m.id_periodo = p.id_periodo
-                GROUP BY m.id_periodo
-                ORDER BY m.id_periodo
-            """,
-            "Estadísticas por concepto": """
-                SELECT c.nombre_concepto,
-                       SUM(m.cantidad_h) as total_hombres,
-                       SUM(m.cantidad_m) as total_mujeres,
-                       SUM(m.cantidad_h + m.cantidad_m) as total
-                FROM movimiento_alumnos m
-                JOIN conceptos c ON m.id_concepto = c.id_concepto
-                GROUP BY c.nombre_concepto
-            """
-        }
+    def __init__(self, db_path):
+        self.db_path = db_path
+        self.window = None
+        sg.theme('DefaultNoMoreNagging')
 
     def crear_layout(self):
         return [
-            [sg.Text("Consultas predefinidas:")],
-            [sg.Combo(list(self.consultas_predefinidas.keys()), 
-                     key="-CONSULTA-", size=(40, 1))],
-            [sg.Button("Ejecutar consulta"), 
-             sg.Button("Consulta personalizada")],
-            [sg.Output(size=(80, 20), key="-OUTPUT-")],
-            [sg.Button("Salir")]
+            [sg.Text("Datos Almacenados", font=('Helvetica', 12, 'bold'))],
+            [sg.TabGroup([
+                [sg.Tab('Movimiento Alumnos', [
+                    [sg.Table(
+                        values=[[]],
+                        headings=[],
+                        auto_size_columns=True,
+                        num_rows=15,
+                        key='-TABLA_ALUMNOS-',
+                        justification='right'
+                    )]
+                ]),
+                sg.Tab('Periodos Proceso', [
+                    [sg.Table(
+                        values=[[]],
+                        headings=[],
+                        auto_size_columns=True,
+                        num_rows=15,
+                        key='-TABLA_PERIODOS-',
+                        justification='right'
+                    )]
+                ])]
+            ], key='-TABGROUP-', enable_events=True)],
+            [sg.Button("Actualizar"), sg.Button("Cerrar")]
         ]
 
     def ejecutar(self):
-        window = sg.Window("Consultas a Base de Datos", self.crear_layout())
+        self.window = sg.Window(
+            "Visualización de Datos",
+            self.crear_layout(),
+            resizable=True,
+            finalize=True
+        )
+        
+        self.actualizar_datos()
 
         while True:
-            event, values = window.read()
-
-            if event in (sg.WINDOW_CLOSED, "Salir"):
+            event, values = self.window.read()
+            if event in (sg.WINDOW_CLOSED, "Cerrar"):
                 break
+            elif event == "Actualizar":
+                self.actualizar_datos()
 
-            if event == "Ejecutar consulta":
-                self._ejecutar_consulta_predefinida(values["-CONSULTA-"])
+        self.window.close()
 
-            if event == "Consulta personalizada":
-                self._ejecutar_consulta_personalizada()
-
-        window.close()
-
-    def _ejecutar_consulta_predefinida(self, consulta_seleccionada):
-        if not consulta_seleccionada:
-            sg.popup_error("Selecciona una consulta")
-            return
-
+    def actualizar_datos(self):
         try:
-            sql = self.consultas_predefinidas[consulta_seleccionada]
-            resultado = ejecutar_consulta(self.nombre_bd, sql)
-            print(f"\n--- {consulta_seleccionada} ---\n")
-            print(resultado)
+            # Consultar datos de alumnos
+            df_alumnos = ejecutar_consulta("SELECT * FROM datos_alumnos")
+            if len(df_alumnos) > 0:
+                self.window['-TABLA_ALUMNOS-'].update(
+                    values=df_alumnos.values.tolist(),
+                    headings=df_alumnos.columns.tolist()
+                )
+            
+            # Consultar datos de periodos
+            df_periodos = ejecutar_consulta("SELECT * FROM datos_periodos")
+            if len(df_periodos) > 0:
+                self.window['-TABLA_PERIODOS-'].update(
+                    values=df_periodos.values.tolist(),
+                    headings=df_periodos.columns.tolist()
+                )
+                
         except Exception as e:
-            print(f"Error al ejecutar la consulta: {str(e)}")
-
-    def _ejecutar_consulta_personalizada(self):
-        sql = sg.popup_get_text(
-            "Ingresa tu consulta SQL:",
-            title="Consulta personalizada"
-        )
-        if sql:
-            try:
-                resultado = ejecutar_consulta(self.nombre_bd, sql)
-                print("\n--- Consulta personalizada ---\n")
-                print(resultado)
-            except Exception as e:
-                print(f"Error al ejecutar la consulta: {str(e)}")
+            sg.popup_error(f"Error al consultar datos: {str(e)}")

@@ -31,5 +31,9 @@ FORMULAS_CONFIG = {
 
 # Configuración de base de datos
 DB_CONFIG = {
-    'nombre': 'datos_escolares.db'
+    'database': 'datos_escolares.db',
+    'tablas': {
+        'movimientos': 'movimiento_alumnos',
+        'periodos': 'periodos_proceso'
+    }
 }
