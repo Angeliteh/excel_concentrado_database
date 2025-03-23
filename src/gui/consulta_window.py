@@ -114,19 +114,34 @@ class ConsultaWindow:
             [sg.Button("Cargar Archivo", key='-CARGAR-')],
             [sg.TabGroup([
                 [sg.Tab('Datos Estructurados', [
-                    [sg.Multiline(
-                        size=(80, 20),
-                        key='-DATOS_ESTRUCTURADOS-',
-                        disabled=True,
-                        font='Courier 10'
+                    [sg.Table(
+                        values=[[]],
+                        headings=['CONCEPTO'] + [col for col in ['1o._H', '1o._M', '2o._H', '2o._M', 
+                                                               '3o._H', '3o._M', '4o._H', '4o._M',
+                                                               '5o._H', '5o._M', '6o._H', '6o._M',
+                                                               'SUBTOTAL_H', 'SUBTOTAL_M', 'TOTAL']],
+                        auto_size_columns=False,
+                        col_widths=[30] + [8]*12 + [12, 12, 10],
+                        justification='center',
+                        num_rows=15,
+                        key='-TABLA_ESTRUCTURADOS-',
+                        font='Courier 11',
+                        alternating_row_color='lightgray',
+                        header_font='Helvetica 11 bold',
                     )]
                 ]),
                 sg.Tab('Datos Normalizados', [
-                    [sg.Multiline(
-                        size=(80, 20),
-                        key='-DATOS_NORMALIZADOS-',
-                        disabled=True,
-                        font='Courier 10'
+                    [sg.Table(
+                        values=[[]],
+                        headings=['GRADO', 'GENERO', 'CONCEPTO', 'VALOR', 'TIPO'],
+                        auto_size_columns=False,
+                        col_widths=[10, 8, 30, 10, 12],
+                        justification='center',
+                        num_rows=15,
+                        key='-TABLA_NORMALIZADOS-',
+                        font='Courier 11',
+                        alternating_row_color='lightgray',
+                        header_font='Helvetica 11 bold',
                     )]
                 ])]
             ], key='-TABGROUP-')],
@@ -162,7 +177,8 @@ class ConsultaWindow:
             "Visualización de Datos",
             self.crear_layout(),
             resizable=True,
-            finalize=True
+            finalize=True,
+            size=(1200, 600)  # Más ancho, menos alto
         )
 
         while True:
@@ -186,15 +202,16 @@ class ConsultaWindow:
                             titulo, self.datos_estructurados = self.limpiar_y_estructurar_datos(df)
                             self.datos_normalizados = self.normalizar_datos_movimiento(self.datos_estructurados)
                             
-                            # Actualizar visualización
-                            self.window['-DATOS_ESTRUCTURADOS-'].update(
-                                self.datos_estructurados.to_string(index=False)
-                            )
-                            self.window['-DATOS_NORMALIZADOS-'].update(
-                                self.datos_normalizados.to_string(index=False)
-                            )
-                            sg.popup("Datos cargados exitosamente")
+                            # Actualizar tabla estructurados
+                            datos_tabla = self.datos_estructurados.values.tolist()
+                            self.window['-TABLA_ESTRUCTURADOS-'].update(values=datos_tabla)
                             
+                            # Actualizar tabla normalizados
+                            datos_norm = self.datos_normalizados.values.tolist()
+                            self.window['-TABLA_NORMALIZADOS-'].update(values=datos_norm)
+                            
+                            sg.popup("Datos cargados exitosamente")
+                        
                     except Exception as e:
                         print(f"Error al cargar archivo: {str(e)}")
                         print(traceback.format_exc())
