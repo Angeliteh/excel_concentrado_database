@@ -105,13 +105,57 @@ def convertir_formulas_a_valores(archivo):
     Convierte todas las fórmulas a valores en el archivo
     """
     import win32com.client
-    excel = win32com.client.Dispatch("Excel.Application")
+    import pythoncom
+
     try:
+        # Inicializar COM
+        pythoncom.CoInitialize()
+
+        # Intentar crear la aplicación Excel
+        try:
+            excel = win32com.client.Dispatch("Excel.Application")
+        except Exception as e:
+            print(f"Error al inicializar Excel COM: {e}")
+            print("Saltando conversión de fórmulas a valores...")
+            return
+
         excel.Visible = False
-        wb = excel.Workbooks.Open(os.path.abspath(archivo))
-        for ws in wb.Worksheets:
-            ws.UsedRange.Value = ws.UsedRange.Value
-        wb.Save()
-        wb.Close()
+        excel.DisplayAlerts = False
+
+        # Convertir a ruta absoluta de forma segura
+        ruta_absoluta = os.path.abspath(archivo)
+        print(f"Abriendo archivo para conversión: {ruta_absoluta}")
+
+        try:
+            wb = excel.Workbooks.Open(ruta_absoluta)
+            print("Archivo abierto exitosamente")
+
+            for ws in wb.Worksheets:
+                print(f"Procesando hoja: {ws.Name}")
+                # Convertir fórmulas a valores
+                if ws.UsedRange is not None:
+                    ws.UsedRange.Value = ws.UsedRange.Value
+
+            wb.Save()
+            print("Archivo guardado exitosamente")
+            wb.Close()
+
+        except Exception as e:
+            print(f"Error al procesar el archivo: {e}")
+            try:
+                wb.Close(SaveChanges=False)
+            except:
+                pass
+
+    except Exception as e:
+        print(f"Error general en conversión de fórmulas: {e}")
+
     finally:
+        try:
+            excel.Quit()
+        except:
+            pass
+        try:
+            pythoncom.CoUninitialize()
+        except:
             pass

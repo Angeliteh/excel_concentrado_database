@@ -143,5 +143,10 @@ def probar_extraccion(archivo_excel):
         raise
 
 # Ejecutar la prueba
-archivo_prueba = "C:\\Users\\Angel\\Desktop\\esucela_prueba -2.xlsx"
-df_original, df_normalizado = probar_extraccion(archivo_prueba)
+# NOTA: Cambiar esta ruta por la ruta relativa de tu archivo de prueba
+# Ejemplo: archivo_prueba = "tests/datos_prueba.xlsx"
+archivo_prueba = input("Ingresa la ruta del archivo Excel de prueba: ")
+if archivo_prueba and os.path.exists(archivo_prueba):
+    df_original, df_normalizado = probar_extraccion(archivo_prueba)
+else:
+    print("Archivo no encontrado o no especificado. Saltando prueba.")

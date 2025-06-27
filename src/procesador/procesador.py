@@ -1,6 +1,6 @@
 from openpyxl import load_workbook
 import pandas as pd
-from ..config.settings import RANGOS_EXCEL, NOMBRE_HOJAS, FORMULAS_CONFIG, RUTA_PLANTILLA
+from ..config.settings import RANGOS_EXCEL, NOMBRE_HOJAS, FORMULAS_CONFIG, RUTA_PLANTILLA, get_absolute_path
 from ..utils.excel_utils import (
     extraer_tabla_y_limpiar,
     cargar_excel,
@@ -105,7 +105,9 @@ class ProcesadorDatosEscolares:
         Guarda los resultados siguiendo el proceso del script antiguo
         """
         try:
-            wb = load_workbook(RUTA_PLANTILLA)
+            # Usar ruta absoluta segura para la plantilla
+            ruta_plantilla_absoluta = get_absolute_path(RUTA_PLANTILLA)
+            wb = load_workbook(ruta_plantilla_absoluta)
             hoja = wb[self.hojas['salida']]
 
             # Inyectar datos siguiendo el proceso antiguo
@@ -123,7 +125,15 @@ class ProcesadorDatosEscolares:
                 fila_inicial=6,
                 fila_final=13
             )
-            convertir_formulas_a_valores(archivo_salida)
+
+            # Intentar convertir fórmulas a valores
+            print("Intentando convertir fórmulas a valores...")
+            try:
+                convertir_formulas_a_valores(archivo_salida)
+                print("✅ Conversión de fórmulas completada exitosamente")
+            except Exception as e:
+                print(f"⚠️ No se pudieron convertir las fórmulas a valores: {e}")
+                print("El archivo se guardó con las fórmulas intactas")
 
         except Exception as e:
             raise Exception(f"Error al guardar resultados: {str(e)}")
